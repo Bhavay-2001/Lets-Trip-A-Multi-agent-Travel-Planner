@@ -78,4 +78,6 @@ def get_city_forecast(city: str):
 
 
 if __name__ == "__main__":
-    mcp.run()
+    mcp.run(
+        transport="stdio",
+    )
