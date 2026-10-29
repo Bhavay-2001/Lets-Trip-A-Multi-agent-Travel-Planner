@@ -77,7 +77,7 @@ jobs:
           # Authenticate to Docker Hub
           echo "docker log in" | docker login \
             --username "$DOCKER_USERNAME" \
-            --password "DOCKER_PASSWORD"
+            --password-stdin
 
           # Pull the exact image built by this workflow
           docker pull "$IMAGE_NAME:$IMAGE_TAG"
