@@ -1,19 +1,18 @@
 import os
-from langchain_groq import ChatGroq
+from langchain_groq import ChatOpenAI
 
 
-
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-if not GROQ_API_KEY:
-    raise ValueError("GROQ_API_KEY is missing. Please add it to your .env file")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+if not OPENAI_API_KEY:
+    raise ValueError("OPENAI_API_KEY is missing. Please add it to your .env file")
 model = os.getenv("MODEL")
 
 
 def get_model():
 # llm model
-    llm = ChatGroq(
+    llm = ChatOpenAI(
         model=model,
-        api_key=GROQ_API_KEY
+        api_key=OPENAI_API_KEY
     )
 
     return llm
