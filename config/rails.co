@@ -1,0 +1,31 @@
+define user express greeting
+  "hello"
+  "hi"
+  "hello, how are you?"
+  "hi, how are you?"
+  "Hi, how are you?"
+  "Hello"
+  "Hi"
+  "Hello, how are you?"
+
+define bot express greeting
+  "Hello! How can I help you today?"
+
+define flow greeting
+  user express greeting
+  bot express greeting
+
+
+define user express leaving
+  "bye"
+  "thank you"
+  "thanks alot"
+  "thank you so much"
+  "thank you for the information"
+
+define bot express leaving
+  "Come back for another itinerary"
+
+define flow leaving
+  user express leaving
+  bot express leaving

@@ -1,5 +1,5 @@
 import os
-from langchain_groq import ChatOpenAI
+from langchain_openai import ChatOpenAI
 
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")

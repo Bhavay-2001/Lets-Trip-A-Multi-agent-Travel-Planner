@@ -6,6 +6,13 @@ from helpers.helper_functions import AGENT_ORDER, KNOWN_AGENTS, _json_from_llm, 
 
 from prompts.prompts import agent_questions, guardrail_prompt
 
+from nemoguardrails import RailsConfig
+from nemoguardrails.integrations.langchain.runnable_rails import RunnableRails
+
+# Load your config (make sure the path points to your guardrails config folder)
+guardrails_config = RailsConfig.from_path("./guardrails_config")
+guardrails = RunnableRails(config=guardrails_config)
+
 
 JEV_AGENT_THRESHOLD = 0.70
 
@@ -17,27 +24,43 @@ jev_classifier = TypeSafeClassifier()
 # =========================
 def supervisor_agent(state: TravelState):
     query = state["user_query"]
-    llm_calls = state.get("llm_calls", 0)
+    # llm_calls = state.get("llm_calls", 0)
 
-    # Fail open on parser/model errors so a temporary JSON-format issue does not
-    # break the original travel-planning behavior.
-    try:
-        guardrail_raw = _llm_text(
-            "You are the input guardrail for a travel-planning application. "
-            "Return strict JSON only.",
-            guardrail_prompt,
-        )
-        guardrail_result = _json_from_llm(guardrail_raw)
-        allowed = bool(guardrail_result.get("allowed", True))
-        guardrail_reason = str(guardrail_result.get("reason", "")).strip()
-        llm_calls += 1
-    except Exception as exc:
-        print(f"Guardrail fallback used: {exc}")
-        allowed = True
-        guardrail_reason = "Guardrail validation fallback allowed the request."
+    # # Fail open on parser/model errors so a temporary JSON-format issue does not
+    # # break the original travel-planning behavior.
+    # try:
+    #     guardrail_raw = _llm_text(
+    #         "You are the input guardrail for a travel-planning application. "
+    #         "Return strict JSON only.",
+    #         guardrail_prompt,
+    #     )
+    #     guardrail_result = _json_from_llm(guardrail_raw)
+    #     allowed = bool(guardrail_result.get("allowed", True))
+    #     guardrail_reason = str(guardrail_result.get("reason", "")).strip()
+    #     llm_calls += 1
+    # except Exception as exc:
+    #     print(f"Guardrail fallback used: {exc}")
+    #     allowed = True
+    #     guardrail_reason = "Guardrail validation fallback allowed the request."
 
-    if not allowed:
-        reason = guardrail_reason or (
+    messages = state.get("messages", [])
+    if not messages:
+        return {"guardrail_allowed": True}
+        
+    latest_message = messages[-1].content
+
+    # 2. Run through NeMo Guardrails
+    # NeMo will return a blocked/refusal message if it violates rules, 
+    # or pass the original message through if safe.
+    guardrail_result = guardrails.invoke({"messages": [("user", latest_message)]})
+
+    # 3. Check if NeMo intervened/blocked
+    # (You can customize this check based on how your guardrail config handles blocks, 
+    # e.g., checking if output matches a canned refusal string)
+    is_blocked = hasattr(guardrail_result, "content") and "I'm sorry" in guardrail_result.content
+
+    if is_blocked:
+        reason = guardrail_result.content or (
             "TripMate AI can only help with travel-planning requests. "
             "Please ask about a destination, flight, hotel, weather, budget, "
             "or itinerary."
@@ -49,8 +72,10 @@ def supervisor_agent(state: TravelState):
             "supervisor_reasoning": reason,
             "final_response": reason,
             "messages": [AIMessage(content=f"Guardrail blocked request: {reason}")],
-            "llm_calls": llm_calls,
         }
+    
+    # 4. If safe, allow normal supervisor execution
+    return {"guardrail_allowed": True}
 
     # JEV Based classification
     try:
