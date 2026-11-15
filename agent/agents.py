@@ -128,7 +128,7 @@ def budget_agent(state: TravelState):
     )
 
     return {
-        "budget_results": response.content,
+        "budget_results": response,
         "messages": [AIMessage(content="Budget assessment generated.")],
         "llm_calls": state.get("llm_calls", 0) + 1,
     }
@@ -151,7 +151,7 @@ def itinerary_agent(state: TravelState):
     )
 
     return {
-        "itinerary": response.content,
+        "itinerary": response,
         "approval_request": approval_request,
         "messages": [AIMessage(content="Draft itinerary created for human review.")],
         "llm_calls": state.get("llm_calls", 0) + 1,
@@ -213,7 +213,7 @@ def final_agent(state: TravelState):
     )
 
     return {
-        "final_response": response.content,
+        "final_response": response,
         "messages": [response],
         "llm_calls": state.get("llm_calls", 0) + 1,
     }
