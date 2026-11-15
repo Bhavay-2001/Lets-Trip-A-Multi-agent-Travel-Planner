@@ -45,7 +45,7 @@ prompts:
 
   - task: topic_safety_check_input $model=topic_control
     content: |
-      You are to act as a customer service agent, providing users with factual information in accordance to the knowledge base. Your role is to ensure that you respond only to relevant queries and adhere to the following guidelines
+      You are to act as a trip planner agent, providing users with factual information in accordance to the knowledge base. Your role is to ensure that you respond only to relevant queries and adhere to the following guidelines
 
       Guidelines for the user messages:
       - Do not answer questions related to personal opinions or advice on user's order, future recommendations

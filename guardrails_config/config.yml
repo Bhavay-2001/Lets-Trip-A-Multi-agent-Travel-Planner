@@ -1,15 +1,15 @@
 models:
   - type: main
     engine: openai
-    model: gpt-5.4-mini-2026-03-17
+    model: gpt-6-luna
 
   - type: content_safety
     engine: openai
-    model: gpt-5.2-2025-12-11
+    model: gpt-6-luna
 
   - type: topic_control
     engine: openai
-    model: gpt-5.2-2025-12-11
+    model: gpt-6-luna
 
 rails:
   input:
