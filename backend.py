@@ -1,33 +1,22 @@
 import os
 import certifi
 
-from agent import graph
+from agent.graph import graph as travel_graph
 from agent.fastapi_helper import _serialize_result
 
 os.environ["SSL_CERT_FILE"] = certifi.where()
 os.environ["REQUESTS_CA_BUNDLE"] = certifi.where()
 
-from typing import  Any
 import uuid
-import psycopg
 
 from langgraph.types import Command
-from langgraph.checkpoint.postgres import PostgresSaver
+
 from langchain_core.messages import HumanMessage
 
 from llm_model.llm_model import get_model
 
-POSTGRES_DATABASE_URL = os.getenv("POSTGRES_DATABASE_URL")
-
 # llm model
 llm = get_model()
-
-
-conn = psycopg.connect(POSTGRES_DATABASE_URL, autocommit=True)
-checkpointer = PostgresSaver(conn)
-checkpointer.setup()
-
-travel_graph = graph.compile(checkpointer=checkpointer)
 
 
 def run_travel_agent(user_input: str, thread_id: str | None = None):
