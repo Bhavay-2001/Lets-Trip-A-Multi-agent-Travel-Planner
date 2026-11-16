@@ -3,15 +3,9 @@ from langchain_typesafe import Noul, TypeSafeClassifier
 
 from agent.schema import TravelState
 from helpers.helper_functions import AGENT_ORDER, KNOWN_AGENTS, _json_from_llm, _llm_text
+from helpers.guardrails import run_guardrail_gatekeeper
 
 from prompts.prompts import agent_questions, guardrail_prompt
-
-from nemoguardrails import RailsConfig
-from nemoguardrails.integrations.langchain.runnable_rails import RunnableRails
-
-# Load your config (make sure the path points to your guardrails config folder)
-guardrails_config = RailsConfig.from_path("./guardrails_config")
-guardrails = RunnableRails(config=guardrails_config)
 
 
 JEV_AGENT_THRESHOLD = 0.70
@@ -23,7 +17,7 @@ jev_classifier = TypeSafeClassifier()
 # Supervisor Agent + Input Guardrail
 # =========================
 def supervisor_agent(state: TravelState):
-    query = state["user_query"]
+    # query = state["user_query"]
     # llm_calls = state.get("llm_calls", 0)
 
     # # Fail open on parser/model errors so a temporary JSON-format issue does not
@@ -43,39 +37,24 @@ def supervisor_agent(state: TravelState):
     #     allowed = True
     #     guardrail_reason = "Guardrail validation fallback allowed the request."
 
-    messages = state.get("messages", [])
-    if not messages:
-        return {"guardrail_allowed": True}
-        
-    latest_message = messages[-1].content
+    query = state.get("user_query", "")
 
-    # 2. Run through NeMo Guardrails
-    # NeMo will return a blocked/refusal message if it violates rules, 
-    # or pass the original message through if safe.
-    guardrail_result = guardrails.invoke({"messages": [("user", latest_message)]})
+    # Run the separate gatekeeper function
+    gatekeeper_result = run_guardrail_gatekeeper(query)
 
-    # 3. Check if NeMo intervened/blocked
-    # (You can customize this check based on how your guardrail config handles blocks, 
-    # e.g., checking if output matches a canned refusal string)
-    is_blocked = hasattr(guardrail_result, "content") and "I'm sorry" in guardrail_result.content
-
-    if is_blocked:
-        reason = guardrail_result.content or (
-            "TripMate AI can only help with travel-planning requests. "
-            "Please ask about a destination, flight, hotel, weather, budget, "
-            "or itinerary."
-        )
+    # If blocked or intercepted, early exit
+    if not gatekeeper_result["allowed"]:
+        refusal_msg = gatekeeper_result["response_message"]
         return {
             "guardrail_allowed": False,
-            "guardrail_reason": reason,
-            "selected_agents": [],
-            "supervisor_reasoning": reason,
-            "final_response": reason,
-            "messages": [AIMessage(content=f"Guardrail blocked request: {reason}")],
+            "guardrail_reason": refusal_msg,
+            "messages": [AIMessage(content=refusal_msg)]
         }
-    
-    # 4. If safe, allow normal supervisor execution
-    return {"guardrail_allowed": True}
+
+    # ==========================================
+    # NORMAL SUPERVISOR LOGIC (Passes Guardrails)
+    # ==========================================
+    print("Guardrails passed. Executing normal supervisor routing...")
 
     # JEV Based classification
     try:
@@ -130,11 +109,9 @@ def supervisor_agent(state: TravelState):
 
     return {
         "guardrail_allowed": True,
-        "guardrail_reason": guardrail_reason,
         "selected_agents": selected_agents,
         "supervisor_reasoning": reasoning,
         "messages": [
             AIMessage(content="JEV created the agent plan.")
         ],
-        "llm_calls": llm_calls,
     }

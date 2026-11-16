@@ -29,3 +29,6 @@ define bot express leaving
 define flow leaving
   user express leaving
   bot express leaving
+
+define bot refuse to respond
+  "I'm a travel planning assistant and can only help you with travel-related queries."

@@ -1,3 +1,5 @@
+passthrough: True
+
 models:
   - type: main
     engine: openai
